@@ -1,0 +1,8 @@
+rustup override set nightly
+
+use wifilocation;
+fn main() {
+    println!("{:?}", wifilocation::get_location(wifilocation::get_towers()));
+}
+
+wifilocation = "0.3.0"
