@@ -1,7 +1,4 @@
-use iota_streams::app_channels::{
-    api::tangle::{Author, Address, Transport}
-    , message
- };
+use iota_streams::app_channels::api::tangle::Author;
 use iota_lib_rs::prelude::iota_client;
 use iota_streams::app::transport::tangle::client::SendTrytesOptions;
 mod api_author;
@@ -9,8 +6,10 @@ use crate::api_author::announce::start_a_new_channel;
 use crate::api_author::send_message::send_signed_message;
 use crate::api_author::send_masked_payload::send_masked_payload;
 use crate::api_author::get_subscribers::get_subscriptions_and_share_keyload;
-use crate::api_author::get_messages::get_messages;
-use failure::{Fallible, ensure, bail};
+use crate::api_author::get_messages::get_tagged_message;
+
+//Some of the source code was taken from https://github.com/JakeSCahill/channels-examples
+//Also from https://docs.iota.org/docs/channels/1.1/tutorials/build-a-messaging-app and from IOTA's Discord channel. 
 
  fn main() {
     let mut client = iota_client::Client::new("https://nodes.devnet.iota.org:443");
@@ -75,29 +74,4 @@ use failure::{Fallible, ensure, bail};
             Err(error) => println!("Failed with error {}", error),
         }
     }
-}
-
-fn get_tagged_message<T: Transport>(author: &mut Author, channel_address: &String, tagged_message_identifier: &String, client: &mut T, recv_opt: T::RecvOptions) -> Fallible<()> {
-
-    // Convert the channel address and message identifier to a link
-    let message_link = match Address::from_str(&channel_address, &tagged_message_identifier){
-        Ok(message_link) => message_link,
-        Err(()) => bail!("Failed to create Address from {}:{}", &channel_address, &tagged_message_identifier),
-    };
-
-    println!("Receiving signed messages");
-
-    // Use the IOTA client to find transactions with the corresponding channel address and tag
-    let list = client.recv_messages_with_options(&message_link, recv_opt)?;
-
-    // Iterate through all the transactions and stop at the first valid message
-    for tx in list.iter() {
-        let header = tx.parse_header()?;
-        ensure!(header.check_content_type(message::tagged_packet::TYPE));
-        let (public_payload, masked_payload) = author.unwrap_tagged_packet(header.clone())?;
-        println!("Found and verified messages");
-        println!("Public message: {}, private message: {}", public_payload, masked_payload);
-        break;
-    }
-    Ok(())
 }

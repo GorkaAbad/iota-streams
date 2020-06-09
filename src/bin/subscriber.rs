@@ -104,6 +104,28 @@ fn subscribe<T: Transport>(subscriber: &mut Subscriber, channel_address: &String
     Ok(())
  }
 
+ pub fn send_masked_payload<T: Transport>(subscriber: &mut Subscriber, channel_address: &String, keyload_message_identifier: &String, public_payload: &String, masked_payload: &String, client: &mut T, send_opt: T::SendOptions ) -> Fallible<Address> {
+
+     // Convert the payloads to a Trytes type
+     let public_payload = Trytes(Tbits::from_str(&public_payload).unwrap());
+     let masked_payload = Trytes(Tbits::from_str(&masked_payload).unwrap());
+
+     // Convert the channel address and message identifier to an Address link type
+     let keyload_link = match Address::from_str(&channel_address, &keyload_message_identifier) {
+         Ok(keyload_link) => keyload_link,
+         Err(()) => bail!("Failed to create Address from {}:{}", &channel_address, &keyload_message_identifier),
+     };
+
+     // Create a `TaggedPacket` message and link it to the message identifier of the `Keyload` message
+     // whose session key is used to encrypt the masked payload
+     let message = subscriber.tag_packet(&keyload_link, &public_payload, &masked_payload)?;
+
+     // Convert the message to a bundle and send it to a node
+     client.send_message_with_options(&message, send_opt)?;
+     println!("Published private payload");
+     Ok(message.link)
+ }
+
  fn main() {
 
     // Create a new subscriber
@@ -204,26 +226,4 @@ fn subscribe<T: Transport>(subscriber: &mut Subscriber, channel_address: &String
 
         println!("Paste this `Tagged` message identifier into your author's command prompt  {}", signed_private_message.msgid);
     }
- }
-
- pub fn send_masked_payload<T: Transport>(subscriber: &mut Subscriber, channel_address: &String, keyload_message_identifier: &String, public_payload: &String, masked_payload: &String, client: &mut T, send_opt: T::SendOptions ) -> Fallible<Address> {
-
-     // Convert the payloads to a Trytes type
-     let public_payload = Trytes(Tbits::from_str(&public_payload).unwrap());
-     let masked_payload = Trytes(Tbits::from_str(&masked_payload).unwrap());
-
-     // Convert the channel address and message identifier to an Address link type
-     let keyload_link = match Address::from_str(&channel_address, &keyload_message_identifier) {
-         Ok(keyload_link) => keyload_link,
-         Err(()) => bail!("Failed to create Address from {}:{}", &channel_address, &keyload_message_identifier),
-     };
-
-     // Create a `TaggedPacket` message and link it to the message identifier of the `Keyload` message
-     // whose session key is used to encrypt the masked payload
-     let message = subscriber.tag_packet(&keyload_link, &public_payload, &masked_payload)?;
-
-     // Convert the message to a bundle and send it to a node
-     client.send_message_with_options(&message, send_opt)?;
-     println!("Published private payload");
-     Ok(message.link)
  }

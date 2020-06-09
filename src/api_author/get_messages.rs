@@ -7,92 +7,27 @@ use iota_streams::app_channels::{
 use failure::{Fallible, ensure, bail};
 
 
-pub fn get_messages<T: Transport>(author: &mut Author, channel_address: &String, subscribe_message_identifier: &String, client: &mut T, keyload:  Address, announce:  Address,recv_opt: T::RecvOptions, recv_opt2: T::RecvOptions) -> Fallible<Address> {
-    //
-    // print!("1 {:?}",announce);
-    // print!("2 {:?}",keyload);
+pub fn get_tagged_message<T: Transport>(author: &mut Author, channel_address: &String, tagged_message_identifier: &String, client: &mut T, recv_opt: T::RecvOptions) -> Fallible<()> {
 
-     let announceMsg = client.recv_messages_with_options(&announce, recv_opt)?;
-     let keyloadMsg = client.recv_messages_with_options(&keyload, recv_opt2)?;
-    //
-     println!("3 {:?}",announceMsg.len());
-     println!("4 {:?}",keyloadMsg.len());
+    // Convert the channel address and message identifier to a link
+    let message_link = match Address::from_str(&channel_address, &tagged_message_identifier){
+        Ok(message_link) => message_link,
+        Err(()) => bail!("Failed to create Address from {}:{}", &channel_address, &tagged_message_identifier),
+    };
 
-     println!("Announce",);
-     for msg in announceMsg.iter() {
-         let preparsed = msg.parse_header()?;
-         println!("Content type {:?}", preparsed.content_type());
-         if preparsed.check_content_type(message::tagged_packet::TYPE) {
-             let rs = author.unwrap_tagged_packet(preparsed.clone());
-             ensure!(rs.is_err());
-             match rs {
-                 Ok((unwrapped_public, unwrapped_masked)) => {
-                     println!("Tagged Public Packet: {}", unwrapped_public.to_string());
-                     println!("Tagged Masked Packet: {}", unwrapped_masked.to_string());
-                 }
-                 Err(e) => println!("Tagged Packet Error: {}", e),
-             }
-             continue;
-         }
+    println!("Receiving signed messages");
 
-         if preparsed.check_content_type(message::subscribe::TYPE) {
-             println!("subscribe", );
-             let rs = author.unwrap_subscribe(preparsed.clone());
-             ensure!(rs.is_err());
-             match rs {
-                 Ok(()) => {
+    // Use the IOTA client to find transactions with the corresponding channel address and tag
+    let list = client.recv_messages_with_options(&message_link, recv_opt)?;
 
-                 }
-                 Err(e) => println!("Tagged Packet Error: {}", e),
-             }
-             continue;
-         }
-         if preparsed.check_content_type(message::keyload::TYPE) {
-             println!("Keyload", );
-         }
-         if preparsed.check_content_type(message::signed_packet::TYPE) {
-             println!("Signed", );
-         }
-         if preparsed.check_content_type(message::announce::TYPE) {
-             println!("Announce", );
-         }
-     }
-     println!("Keyload", );
-     for msg in keyloadMsg.iter() {
-         let preparsed = msg.parse_header()?;
-
-         if preparsed.check_content_type(message::tagged_packet::TYPE) {
-             let rs = author.unwrap_tagged_packet(preparsed.clone());
-             ensure!(rs.is_err());
-             match rs {
-                 Ok((unwrapped_public, unwrapped_masked)) => {
-                     println!("Tagged Public Packet: {}", unwrapped_public.to_string());
-                     println!("Tagged Masked Packet: {}", unwrapped_masked.to_string());
-                 }
-                 Err(e) => println!("Tagged Packet Error: {}", e),
-             }
-             continue;
-         }
-         if preparsed.check_content_type(message::subscribe::TYPE) {
-             println!("suscribe", );
-             let rs = author.unwrap_subscribe(preparsed.clone());
-             ensure!(rs.is_err());
-             match rs {
-                 Ok(()) => {
-
-                 }
-                 Err(e) => println!("Tagged Packet Error: {}", e),
-             }
-             continue;
-         }
-         if preparsed.check_content_type(message::keyload::TYPE) {
-             println!("Keyload", );
-         }
-         if preparsed.check_content_type(message::signed_packet::TYPE) {
-             println!("Signed", );
-         }
-     }
-
-
-    Ok(keyload)
+    // Iterate through all the transactions and stop at the first valid message
+    for tx in list.iter() {
+        let header = tx.parse_header()?;
+        ensure!(header.check_content_type(message::tagged_packet::TYPE));
+        let (public_payload, masked_payload) = author.unwrap_tagged_packet(header.clone())?;
+        println!("Found and verified messages");
+        println!("Public message: {}, private message: {}", public_payload, masked_payload);
+        break;
+    }
+    Ok(())
 }
