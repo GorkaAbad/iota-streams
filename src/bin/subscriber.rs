@@ -8,6 +8,9 @@ use iota_lib_rs::prelude::iota_client;
 use iota_streams::app::transport::tangle::client::SendTrytesOptions;
 use failure::{Fallible, ensure, bail};
 use std::env;
+use iota_streams::protobuf3::types::Trytes;
+use iota_streams::core::tbits::Tbits;
+use std::str::FromStr;
 
 fn get_signed_messages<T: Transport>(subscriber: &mut Subscriber, channel_address: &String, signed_message_identifier: &String, client: &mut T, recv_opt: T::RecvOptions) -> Fallible<()> {
 
@@ -151,9 +154,11 @@ fn subscribe<T: Transport>(subscriber: &mut Subscriber, channel_address: &String
     }
 
     match get_keyload(&mut subscriber, &channel_address.to_string(), &keyload_message_identifier.to_string(), &mut client, recv_opt){
-        Ok(()) => (),
-        Err(error) => println!("Failed with error {}", error),
-    }
+       Ok(()) => (),
+       Err(error) => println!("Failed with error {}", error),
+   }
+
+    let keyload_message = Address::from_str(&channel_address, &keyload_message_identifier).unwrap();
 
     let mut signed_private_message_identifier = String::new();
     println!("Enter the SignedPacket message identifier that was published by the author:");
@@ -170,4 +175,55 @@ fn subscribe<T: Transport>(subscriber: &mut Subscriber, channel_address: &String
         Ok(()) => (),
         Err(error) => println!("Failed with error {}", error),
     }
+
+    let mut send_opt = SendTrytesOptions::default();
+    send_opt.min_weight_magnitude = 9;
+    send_opt.local_pow = false; //IMPORTANT
+    loop {
+        let mut public_payload = String::new();
+        println!("Enter the public payload that you want to send:");
+        std::io::stdin().read_line(&mut public_payload).unwrap();
+
+        let mut masked_payload = String::new();
+        println!("Enter the masked payload that you want to send:");
+        std::io::stdin().read_line(&mut masked_payload).unwrap();
+
+        if public_payload.ends_with('\n') {
+            public_payload.pop();
+        }
+        if public_payload.ends_with('\r') {
+            public_payload.pop();
+        }
+        if masked_payload.ends_with('\n') {
+            masked_payload.pop();
+        }
+        if masked_payload.ends_with('\r') {
+            masked_payload.pop();
+        }
+        let signed_private_message = send_masked_payload(&mut subscriber, &channel_address, &keyload_message.msgid.to_string(), &public_payload.to_string(), &masked_payload.to_string(), &mut client, send_opt).unwrap();
+
+        println!("Paste this `Tagged` message identifier into your author's command prompt  {}", signed_private_message.msgid);
+    }
+ }
+
+ pub fn send_masked_payload<T: Transport>(subscriber: &mut Subscriber, channel_address: &String, keyload_message_identifier: &String, public_payload: &String, masked_payload: &String, client: &mut T, send_opt: T::SendOptions ) -> Fallible<Address> {
+
+     // Convert the payloads to a Trytes type
+     let public_payload = Trytes(Tbits::from_str(&public_payload).unwrap());
+     let masked_payload = Trytes(Tbits::from_str(&masked_payload).unwrap());
+
+     // Convert the channel address and message identifier to an Address link type
+     let keyload_link = match Address::from_str(&channel_address, &keyload_message_identifier) {
+         Ok(keyload_link) => keyload_link,
+         Err(()) => bail!("Failed to create Address from {}:{}", &channel_address, &keyload_message_identifier),
+     };
+
+     // Create a `TaggedPacket` message and link it to the message identifier of the `Keyload` message
+     // whose session key is used to encrypt the masked payload
+     let message = subscriber.tag_packet(&keyload_link, &public_payload, &masked_payload)?;
+
+     // Convert the message to a bundle and send it to a node
+     client.send_message_with_options(&message, send_opt)?;
+     println!("Published private payload");
+     Ok(message.link)
  }
