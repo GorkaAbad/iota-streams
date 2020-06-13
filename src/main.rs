@@ -9,7 +9,7 @@ use crate::api_author::get_subscribers::get_subscriptions_and_share_keyload;
 use crate::api_author::get_messages::get_tagged_message;
 
 //Some of the source code was taken from https://github.com/JakeSCahill/channels-examples
-//Also from https://docs.iota.org/docs/channels/1.1/tutorials/build-a-messaging-app and from IOTA's Discord channel. 
+//Also from https://docs.iota.org/docs/channels/1.1/tutorials/build-a-messaging-app and from IOTA's Discord channel.
 
  fn main() {
     let mut client = iota_client::Client::new("https://nodes.devnet.iota.org:443");
@@ -18,7 +18,7 @@ use crate::api_author::get_messages::get_tagged_message;
     send_opt.min_weight_magnitude = 9;
     send_opt.local_pow = false; //IMPORTANT
 
-    let mut author = Author::new("DSSSHASLKHDEIULAAFHSFHSSSDJFHSKEUFHEESDDAADDJFHSFKJSHADF", 3, true);
+    let mut author = Author::new("DSSSHALKHDEIULAAFHSFHSSSDJFHSKEUFHEESDDAADDJFHSFKJSHADF", 3, true);
 
     let channel_address = author.channel_address().to_string();
 
