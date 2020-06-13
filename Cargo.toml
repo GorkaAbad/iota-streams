@@ -10,3 +10,5 @@ edition = "2018"
 iota-streams = { git = "https://github.com/iotaledger/streams" }
 failure = "0.1"
 iota-lib-rs = "0.4.1"
+openweather = { git = "https://github.com/caemor/openweather" }
+iota-conversion = { git = "https://github.com/iotaledger/iota.rs.git" }

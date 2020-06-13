@@ -18,7 +18,7 @@ use crate::api_author::get_messages::get_tagged_message;
     send_opt.min_weight_magnitude = 9;
     send_opt.local_pow = false; //IMPORTANT
 
-    let mut author = Author::new("DSSSHALKHDEIULAAFHSFHSSSDJFHSKEUFHEESDDAADDJFHSFKJSHADF", 3, true);
+    let mut author = Author::new("SHALKHDEIULSDADAAERAFHSQWSJFHSKEUFHEESDDAADDJFHSFKDDDSHADF", 3, true);
 
     let channel_address = author.channel_address().to_string();
 
