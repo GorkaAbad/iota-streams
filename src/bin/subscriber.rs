@@ -1,4 +1,3 @@
-#![cfg_attr(debug_assertions, allow(dead_code, unused_imports))]
 extern crate openweather;
 
 use iota_streams::app_channels::{
@@ -13,7 +12,7 @@ use iota_streams::protobuf3::types::Trytes;
 use iota_streams::core::tbits::Tbits;
 use std::str::FromStr;
 use openweather::{LocationSpecifier, Settings};
-use iota_conversion::trytes_converter::{to_string as trytes_to_string, to_trytes};
+use iota_conversion::trytes_converter::to_trytes;
 use std::{thread, time};
 static API_KEY: &str = "e85e0a3142231dab28a2611888e48f22";
 
@@ -113,7 +112,6 @@ fn subscribe<T: Transport>(subscriber: &mut Subscriber, channel_address: &String
 
      // Convert the payloads to a Trytes type
      let public_payload = Trytes(Tbits::from_str(&public_payload).unwrap());
-     //let masked_payload = Trytes(Tbits::from_str(&masked_payload).unwrap());
      let masked_payload = Trytes(Tbits::from_str(&to_trytes(&masked_payload).unwrap()).unwrap());
      println!("Masked {:?}",&masked_payload );
 
@@ -133,17 +131,18 @@ fn subscribe<T: Transport>(subscriber: &mut Subscriber, channel_address: &String
      Ok(message.link)
  }
 
- fn getTemperature() -> i64 {
+ fn get_temperature() -> i64 {
      let loc = LocationSpecifier::CityAndCountryName{city:"Madrid".to_string(), country:"ES".to_string()};
      let weather = openweather::get_current_weather(&loc, API_KEY, &Settings::default()).unwrap();
      let temp = (weather.main.temp - 273.15).round() as i64;
-     println!("{}", temp);
+     println!("Current temperature: {}", temp);
      return temp;
  }
 
  fn main() {
 
     // Create a new subscriber
+    //Add random seed generation
     let mut subscriber = Subscriber::new("MYSUBSCRIBERSECRETSTRING", true);
 
     // Connect to an IOTA node
@@ -163,8 +162,7 @@ fn subscribe<T: Transport>(subscriber: &mut Subscriber, channel_address: &String
 
     // Change the default settings to use a lower minimum weight magnitude for the Devnet
     let mut send_opt = SendTrytesOptions::default();
-    // default is 14
-    send_opt.min_weight_magnitude = 9;
+    send_opt.min_weight_magnitude = 9;// default is 14
     send_opt.local_pow = false;
 
     match subscribe(&mut subscriber, &channel_address.to_string(), &announce_message_identifier.to_string(), &mut client, send_opt) {
@@ -193,10 +191,11 @@ fn subscribe<T: Transport>(subscriber: &mut Subscriber, channel_address: &String
     let mut send_opt = SendTrytesOptions::default();
     send_opt.min_weight_magnitude = 9;
     send_opt.local_pow = false; //IMPORTANT
-    loop {
-        let mut public_payload = "TEMPERATURE";
 
-        let mut masked_payload = getTemperature().to_string();
+    let public_payload = "TEMPERATURE";
+
+    loop {
+        let masked_payload = get_temperature().to_string();
 
         let signed_private_message = send_masked_payload(&mut subscriber, &channel_address, &keyload_message.msgid.to_string(), &public_payload.to_string(), &masked_payload.to_string(), &mut client, send_opt).unwrap();
 

@@ -1,4 +1,3 @@
-#![cfg_attr(debug_assertions, allow(dead_code, unused_imports))]
 
 use iota_streams::app_channels::api::tangle::{Author, Address, Transport};
 use iota_streams::protobuf3::types::Trytes;

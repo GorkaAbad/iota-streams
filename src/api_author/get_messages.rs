@@ -1,11 +1,9 @@
-#![cfg_attr(debug_assertions, allow(dead_code, unused_imports))]
-
 use iota_streams::app_channels::{
     api::tangle::{Address, Author, Transport}
     , message
 };
 use failure::{Fallible, ensure, bail};
-use iota_conversion::trytes_converter::{to_string as trytes_to_string, to_trytes};
+use iota_conversion::trytes_converter::to_string;
 
 
 pub fn get_tagged_message<T: Transport>(author: &mut Author, channel_address: &String, tagged_message_identifier: &String, client: &mut T, recv_opt: T::RecvOptions) -> Fallible<()> {
@@ -27,7 +25,7 @@ pub fn get_tagged_message<T: Transport>(author: &mut Author, channel_address: &S
         ensure!(header.check_content_type(message::tagged_packet::TYPE));
         let (public_payload, masked_payload) = author.unwrap_tagged_packet(header.clone())?;
         println!("Found and verified messages");
-        println!("Public message: {}, private message: {}", public_payload, trytes_to_string(&masked_payload.to_string()).unwrap());
+        println!("Public message: {}, private message: {}", public_payload, to_string(&masked_payload.to_string()).unwrap());
         break;
     }
     Ok(())
