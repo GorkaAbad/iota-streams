@@ -26,12 +26,12 @@ use crate::api_author::get_messages::get_tagged_message;
 
     let public_payload = "BREAKINGCHANGES";
 
-    let signed_message = send_signed_message(&mut author, &channel_address, &announce_message.msgid.to_string(), &public_payload.to_string(), &mut client, send_opt).unwrap();
+    //let signed_message = send_signed_message(&mut author, &channel_address, &announce_message.msgid.to_string(), &public_payload.to_string(), &mut client, send_opt).unwrap();
 
     println!("");
     println!("Now, in a new terminal window, use the subscriber to publish a `Subscribe` message on the channel");
     println!("");
-    println!("cargo run --release --bin subscriber {} {} {}", channel_address, announce_message.msgid, signed_message.msgid);
+    println!("cargo run --release --bin subscriber {} {}", channel_address, announce_message.msgid);
     println!("");
 
     let mut subscribe_message_identifier = String::new();
@@ -53,9 +53,9 @@ use crate::api_author::get_messages::get_tagged_message;
 
     let masked_payload = "SUPERSECRETPAYLOAD";
 
-    let signed_private_message = send_masked_payload(&mut author, &channel_address, &keyload_message.msgid.to_string(), &public_payload.to_string(), &masked_payload.to_string(), &mut client, send_opt).unwrap();
-
-    println!("Paste this `SignedPacket` message identifier in the subscriber's command prompt: {}", signed_private_message.msgid);
+    // let signed_private_message = send_masked_payload(&mut author, &channel_address, &keyload_message.msgid.to_string(), &public_payload.to_string(), &masked_payload.to_string(), &mut client, send_opt).unwrap();
+    //
+    // println!("Paste this `SignedPacket` message identifier in the subscriber's command prompt: {}", signed_private_message.msgid);
 
     loop {
         let mut tagged_message_identifier = String::new();

@@ -14,6 +14,7 @@ use iota_streams::core::tbits::Tbits;
 use std::str::FromStr;
 use openweather::{LocationSpecifier, Settings};
 use iota_conversion::trytes_converter::{to_string as trytes_to_string, to_trytes};
+use std::{thread, time};
 static API_KEY: &str = "e85e0a3142231dab28a2611888e48f22";
 
 fn get_signed_messages<T: Transport>(subscriber: &mut Subscriber, channel_address: &String, signed_message_identifier: &String, client: &mut T, recv_opt: T::RecvOptions) -> Fallible<()> {
@@ -143,7 +144,6 @@ fn subscribe<T: Transport>(subscriber: &mut Subscriber, channel_address: &String
  fn main() {
 
     // Create a new subscriber
-    // REPLACE THE SECRET WITH YOUR OWN
     let mut subscriber = Subscriber::new("MYSUBSCRIBERSECRETSTRING", true);
 
     // Connect to an IOTA node
@@ -153,16 +153,10 @@ fn subscribe<T: Transport>(subscriber: &mut Subscriber, channel_address: &String
 
     let channel_address = &args[1];
     let announce_message_identifier = &args[2];
-    let signed_message_identifier = &args[3];
 
     let recv_opt = ();
 
     match get_announcement(&mut subscriber, &channel_address.to_string(), &announce_message_identifier.to_string(), &mut client, recv_opt){
-        Ok(()) => (),
-        Err(error) => println!("Failed with error {}", error),
-    }
-
-    match get_signed_messages(&mut subscriber, &channel_address.to_string(), &signed_message_identifier.to_string(), &mut client, recv_opt){
         Ok(()) => (),
         Err(error) => println!("Failed with error {}", error),
     }
@@ -196,49 +190,19 @@ fn subscribe<T: Transport>(subscriber: &mut Subscriber, channel_address: &String
 
     let keyload_message = Address::from_str(&channel_address, &keyload_message_identifier).unwrap();
 
-    let mut signed_private_message_identifier = String::new();
-    println!("Enter the SignedPacket message identifier that was published by the author:");
-    std::io::stdin().read_line(&mut signed_private_message_identifier).unwrap();
-
-    if signed_private_message_identifier.ends_with('\n') {
-        signed_private_message_identifier.pop();
-    }
-    if signed_private_message_identifier.ends_with('\r') {
-        signed_private_message_identifier.pop();
-    }
-
-    match get_signed_messages(&mut subscriber, &channel_address.to_string(), &signed_private_message_identifier.to_string(), &mut client, recv_opt){
-        Ok(()) => (),
-        Err(error) => println!("Failed with error {}", error),
-    }
-
     let mut send_opt = SendTrytesOptions::default();
     send_opt.min_weight_magnitude = 9;
     send_opt.local_pow = false; //IMPORTANT
     loop {
         let mut public_payload = "TEMPERATURE";
-        // let mut public_payload = String::new();
-        // println!("Enter the public payload that you want to send:");
-        // std::io::stdin().read_line(&mut public_payload).unwrap();
-        let mut masked_payload = getTemperature().to_string();
-        //let mut masked_payload = String::new();
-        // println!("Enter the masked payload that you want to send:");
-        // std::io::stdin().read_line(&mut masked_payload).unwrap();
 
-        // if public_payload.ends_with('\n') {
-        //     public_payload.pop();
-        // }
-        // if public_payload.ends_with('\r') {
-        //     public_payload.pop();
-        // }
-        // if masked_payload.ends_with('\n') {
-        //     masked_payload.pop();
-        // }
-        // if masked_payload.ends_with('\r') {
-        //     masked_payload.pop();
-        // }
+        let mut masked_payload = getTemperature().to_string();
+
         let signed_private_message = send_masked_payload(&mut subscriber, &channel_address, &keyload_message.msgid.to_string(), &public_payload.to_string(), &masked_payload.to_string(), &mut client, send_opt).unwrap();
 
         println!("Paste this `Tagged` message identifier into your author's command prompt  {}", signed_private_message.msgid);
+
+        let ten_millis = time::Duration::from_millis(10000);
+        thread::sleep(ten_millis);
     }
  }
